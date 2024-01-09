@@ -117,20 +117,28 @@ func main() {
 }
 
 
+// ParseFlags reads and parses the command-line flags for the Chord client.
+// It sets the provided ChordFlags structure with the parsed values.
+// Returns an error if the flags are invalid or not specified.
 func ParseFlags(f *ChordFlags) error {
-	flag.StringVar(&f.LocalIp, "a", INVALID_STRING, "The IP address that the Chord client will bind to, as well as advertise to other nodes. Represented as an ASCII string (e.g., 128.8.126.63). Must be specified.")
+	// Define command-line flags and their descriptions
+	flag.StringVar(&f.LocalIp, "a", INVALID_STRING, "The IP address that the Chord client will bind to and advertise to other nodes. Represented as an ASCII string (e.g., 128.8.126.63). Must be specified.")
 	flag.IntVar(&f.LocalPort, "p", INVALID_INT, "The port that the Chord client will bind to and listen on. Represented as a base-10 integer. Must be specified.")
-	//flag.IntVar(&f.SecurePort, "sp", INVALID_INT, "The ssh port that the Chord client will bind to and listen on. Represented as a base-10 integer. Optional.")
-	flag.StringVar(&f.JoinNodeIP, "ja", INVALID_STRING, "The IP address of the machine running a Chord node. The Chord client will join this nodes ring. Represented as an ASCII string (e.g., 128.8.126.63). Must be specified if --jp is specified.")
-	flag.IntVar(&f.JoinNodePort, "jp", INVALID_INT, "The port that an existing Chord node is bound to and listening on. The Chord client will join this nodes ring. Represented as a base-10 integer. Must be specified if --ja is specified.")
-	flag.IntVar(&f.StabilizeInterval, "ts", INVALID_INT, "The time in milliseconds between invocations of ‘stabilize’. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
-	flag.IntVar(&f.FixFingersInterval, "tff", INVALID_INT, "The time in milliseconds between invocations of ‘fix fingers’. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
-	flag.IntVar(&f.CheckPredInterval, "tcp", INVALID_INT, "The time in milliseconds between invocations of ‘check predecessor’.	Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
+	flag.StringVar(&f.JoinNodeIP, "ja", INVALID_STRING, "The IP address of the machine running a Chord node. The Chord client will join this node's ring. Represented as an ASCII string (e.g., 128.8.126.63). Must be specified if --jp is specified.")
+	flag.IntVar(&f.JoinNodePort, "jp", INVALID_INT, "The port that an existing Chord node is bound to and listening on. The Chord client will join this node's ring. Represented as a base-10 integer. Must be specified if --ja is specified.")
+	flag.IntVar(&f.StabilizeInterval, "ts", INVALID_INT, "The time in milliseconds between invocations of 'stabilize'. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
+	flag.IntVar(&f.FixFingersInterval, "tff", INVALID_INT, "The time in milliseconds between invocations of 'fix fingers'. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
+	flag.IntVar(&f.CheckPredInterval, "tcp", INVALID_INT, "The time in milliseconds between invocations of 'check predecessor'. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
 	flag.IntVar(&f.NumSuccessors, "r", INVALID_INT, "The number of successors maintained by the Chord client. Represented as a base-10 integer. Must be specified, with a value in the range of [1,32].")
-	flag.StringVar(&f.IDOverride, "i", INVALID_STRING, "The identifier (ID) assigned to the Chord client which will override the ID computed by the SHA1 sum of the clients IP address and port number. Represented as a string of 40 characters matching [0-9a-fA-F]. Optional parameter.")
+	flag.StringVar(&f.IDOverride, "i", INVALID_STRING, "The identifier (ID) assigned to the Chord client, which will override the ID computed by the SHA1 sum of the client's IP address and port number. Represented as a string of 40 characters matching [0-9a-fA-F]. Optional parameter.")
+	
+	// Parse the command-line flags
 	flag.Parse()
+	
+	// Validate the parsed flags
 	return validateFlags(f)
 }
+
 
 func withinRange(f, startRange, endRange int) bool {
 	return startRange <= f && f <= endRange
@@ -140,17 +148,27 @@ func errorMessage(flagname, description string) string {
 	return fmt.Sprintf("please set %v: %v\n", flagname, description)
 }
 
+// validateFlags checks if the parsed ChordFlags structure has valid values.
+// Returns an error if the flags are invalid.
 func validateFlags(f *ChordFlags) error {
 	var errorString = ""
+
+	// Validate LocalIp
 	if f.LocalIp == INVALID_STRING {
-		errorString += errorMessage("-a", "ASCII string of ip address to bind chord client to")
+		errorString += errorMessage("-a", "ASCII string of the IP address to bind the Chord client to.")
 	}
+
+	// Validate LocalPort
 	if f.LocalPort == INVALID_INT {
-		errorString += errorMessage("-p", "port number that the chord client listens on")
+		errorString += errorMessage("-p", "port number that the Chord client listens on.")
 	}
+
+	// Validate SecurePort
 	if f.SecurePort == INVALID_INT {
-		errorString += errorMessage("-sp", "port that the chord client's ssh server is listening on")
+		errorString += errorMessage("-sp", "port that the Chord client's SSH server is listening on.")
 	}
+
+	// Validate JoinNodeIP and JoinNodePort
 	if (f.JoinNodeIP == INVALID_STRING && f.JoinNodePort != INVALID_INT) || (f.JoinNodeIP != INVALID_STRING && f.JoinNodePort == INVALID_INT) {
 		var flagname string
 		if f.JoinNodeIP == INVALID_STRING {
@@ -160,30 +178,43 @@ func validateFlags(f *ChordFlags) error {
 		}
 		errorString += errorMessage(flagname, "If either —ja (join address) or —jp (join port) is used, both must be given.")
 	}
+
+	// Validate StabilizeInterval
 	if !withinRange(f.StabilizeInterval, 1, 60000) {
-		errorString += errorMessage("--ts", "Runtime for the stabilize call in milliseconds, in the range [1, 60000]")
+		errorString += errorMessage("--ts", "Runtime for the stabilize call in milliseconds, in the range [1, 60000].")
 	}
+
+	// Validate FixFingersInterval
 	if !withinRange(f.FixFingersInterval, 1, 60000) {
-		errorString += errorMessage("--tff", "Runtime for fix fingers call in milliseconds, range [1, 60000]")
+		errorString += errorMessage("--tff", "Runtime for fix fingers call in milliseconds, in the range [1, 60000].")
 	}
+
+	// Validate CheckPredInterval
 	if !withinRange(f.CheckPredInterval, 1, 60000) {
-		errorString += errorMessage("--tcp", "Runtime for predecessor call in milliseconds, in the range [1, 60000]")
+		errorString += errorMessage("--tcp", "Runtime for predecessor call in milliseconds, in the range [1, 60000].")
 	}
+
+	// Validate NumSuccessors
 	if !withinRange(f.NumSuccessors, 1, 32) {
-		errorString += errorMessage("-r", "Range of the number of successors [1, 32]")
+		errorString += errorMessage("-r", "Range of the number of successors [1, 32].")
 	}
+
+	// Validate IDOverride
 	if f.IDOverride != INVALID_STRING {
 		var noOfChars = RING_SIZE_BITS / 4
 		var _, err = hex.DecodeString(f.IDOverride)
 		if err != nil || noOfChars != len(f.IDOverride) {
-			errorString += errorMessage("-i", fmt.Sprintf("chord-provided hexadecimal override node identification, values: [0-9][a-f][A-F], total values: %v", noOfChars))
+			errorString += errorMessage("-i", fmt.Sprintf("chord-provided hexadecimal override node identification, values: [0-9][a-f][A-F], total values: %v.", noOfChars))
 		}
 	}
+
+	// Return an error if any validation checks fail
 	if errorString == "" {
 		return nil
 	}
 	return errors.New(errorString)
 }
+
 
 func (flag ChordFlags) GetOverrideId() *string {
 	if flag.IDOverride == INVALID_STRING {
