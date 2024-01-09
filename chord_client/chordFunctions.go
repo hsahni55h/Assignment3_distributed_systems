@@ -627,24 +627,44 @@ func HexStringToBytes(hexString string) (*big.Int, error) {
 
 
 
+// keyLength represents the size of the Chord ring in bits.
 const keyLength = RING_SIZE_BITS
 
+// two is a big.Int constant with a value of 2.
 var two = big.NewInt(2)
+
+// hashMod is the result of 2^keyLength, representing the modulus for Chord hash values.
 var hashMod = new(big.Int).Exp(two, big.NewInt(keyLength), nil)
 
+
+// GenerateHash calculates the SHA-1 hash of the given string and returns it as a big.Int.
 func GenerateHash(elt string) *big.Int {
+	// Create a new SHA-1 hash instance
 	hash := sha1.New()
+
+	// Write the byte representation of the input string to the hash
 	hash.Write([]byte(elt))
+
+	// Return the hash result as a big.Int
 	return new(big.Int).SetBytes(hash.Sum(nil))
 }
 
+
+// Jump calculates the target identifier by adding 2^fingerentry to the nodeIdentifier and taking the result modulo 2^(keyLength).
 func Jump(nodeIdentifier big.Int, fingerentry int) *big.Int {
+	// Convert fingerentry to a big.Int
 	fingerentryBig := big.NewInt(int64(fingerentry))
+
+	// Calculate the jump as 2^fingerentry
 	jump := new(big.Int).Exp(two, fingerentryBig, nil)
+
+	// Calculate the sum by adding nodeIdentifier and jump
 	sum := new(big.Int).Add(&nodeIdentifier, jump)
 
+	// Take the result modulo 2^(keyLength)
 	return new(big.Int).Mod(sum, hashMod)
 }
+
 
 func Within(start, elt, end *big.Int, inclusive bool) bool {
 	if end.Cmp(start) > 0 {
