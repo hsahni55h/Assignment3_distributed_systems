@@ -86,41 +86,62 @@ func Successors(node string) ([]NodeDetails, error) {
 
 // RpcSearchSuccessor searches for the successor of a Chord node.
 func RpcSearchSuccessor(node string, id *big.Int) (*FindSuccessorData, error) {
+	// Prepare the request
 	var reply FindSuccessorData
+
+	// Make the RPC call
 	err := handleCall(node, "RPCHandler.SearchSuccessor", id, &reply)
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the result
 	return &reply, nil
 }
 
+
 // RpcNotify notifies a Chord node.
 func RpcNotify(notifiee string, notifier NodeDetails) error {
+	// Prepare the request
 	var reply string
+
+	// Make the RPC call
 	err := handleCall(notifiee, "RPCHandler.Notify", &notifier, &reply)
 	return err
 }
 
+
 // SaveClientFile saves a file on a Chord node.
 func SaveClientFile(nodeAddress string, fileKey big.Int, content []byte) error {
+	// Prepare the request
 	var reply string
 	args := FileStorageArguments{Key: fileKey, Data: content}
+
+	// Make the RPC call
 	err := handleCall(nodeAddress, "RPCHandler.StoreFile", &args, &reply)
 	return err
 }
 
+
 // TransferFiles transfers files between Chord nodes.
 func TransferFiles(nodeAddress string, files map[string]*[]byte) error {
+	// Prepare the request
 	var reply string
 	args := FileTransferArguments{Files: files}
+
+	// Make the RPC call
 	err := handleCall(nodeAddress, "RPCHandler.TransferFiles", &args, &reply)
 	return err
 }
 
+
 // IsAlive checks if a Chord node is still alive.
 func IsAlive(nodeAddress string) bool {
+	// Prepare the request
 	dummy := "empty"
 	var reply bool
+
+	// Make the RPC call
 	err := handleCall(nodeAddress, "RPCHandler.IsAlive", &dummy, &reply)
 	return err == nil && reply
 }
