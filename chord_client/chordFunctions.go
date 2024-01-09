@@ -479,7 +479,6 @@ func CreateRing() {
 	UpdateFingerTable(Get().Details)
 }
 
-
 // JoinRing joins the current Chord node to an existing Chord ring.
 // It locates the appropriate position in the ring and updates the successor and finger table accordingly.
 func JoinRing(joinIp string, joinPort int, nodeId *big.Int, maxSteps int) error {
@@ -499,7 +498,6 @@ func JoinRing(joinIp string, joinPort int, nodeId *big.Int, maxSteps int) error 
 
 	return nil
 }
-
 
 // Stabilize performs the stabilization process for the Chord node.
 // It checks and updates the successor node and fetches the latest list of successors from the current successor.
@@ -549,7 +547,6 @@ func Stabilize() {
 	log.Printf("Successor list updated with new successor %v, new length: %v", node.Successors[0], len(node.Successors))
 }
 
-
 // Notify is invoked by another Chord node to inform about its presence.
 // It updates the predecessor of the current node if the incoming node is a suitable predecessor.
 func Notify(node NodeDetails) {
@@ -567,7 +564,6 @@ func Notify(node NodeDetails) {
 
 	log.Printf("%v\n", Msg)
 }
-
 
 // FixFingers updates the finger table by setting the next finger at regular intervals.
 // It calculates the next finger based on the current node's details and updates the finger table.
@@ -599,7 +595,6 @@ func FixFingers() {
 	nodeInstance.FingerTable = append(nodeInstance.FingerTable, *node)
 }
 
-
 // CheckPredecessor checks the liveness of the current node's predecessor.
 // If the predecessor is unresponsive, it sets the predecessor to nil.
 func CheckPredecessor() {
@@ -611,7 +606,6 @@ func CheckPredecessor() {
 		log.Printf("Predecessor set to nil due to unresponsiveness from the previous predecessor %v\n", node.Predecessor)
 	}
 }
-
 
 // HexStringToBytes converts a hexadecimal string to a big.Int.
 // It uses the hex.DecodeString function to convert the hex string to a byte slice.
@@ -625,8 +619,6 @@ func HexStringToBytes(hexString string) (*big.Int, error) {
 	return new(big.Int).SetBytes(bytes), nil
 }
 
-
-
 // keyLength represents the size of the Chord ring in bits.
 const keyLength = RING_SIZE_BITS
 
@@ -635,7 +627,6 @@ var two = big.NewInt(2)
 
 // hashMod is the result of 2^keyLength, representing the modulus for Chord hash values.
 var hashMod = new(big.Int).Exp(two, big.NewInt(keyLength), nil)
-
 
 // GenerateHash calculates the SHA-1 hash of the given string and returns it as a big.Int.
 func GenerateHash(elt string) *big.Int {
@@ -648,7 +639,6 @@ func GenerateHash(elt string) *big.Int {
 	// Return the hash result as a big.Int
 	return new(big.Int).SetBytes(hash.Sum(nil))
 }
-
 
 // Jump calculates the target identifier by adding 2^fingerentry to the nodeIdentifier and taking the result modulo 2^(keyLength).
 func Jump(nodeIdentifier big.Int, fingerentry int) *big.Int {
@@ -665,7 +655,6 @@ func Jump(nodeIdentifier big.Int, fingerentry int) *big.Int {
 	return new(big.Int).Mod(sum, hashMod)
 }
 
-
 // Within checks if the given element is within the range [start, end] (inclusive or exclusive).
 // Returns true if the element is within the range, false otherwise.
 func Within(start, elt, end *big.Int, inclusive bool) bool {
@@ -677,7 +666,6 @@ func Within(start, elt, end *big.Int, inclusive bool) bool {
 		return start.Cmp(elt) < 0 || elt.Cmp(end) < 0 || (inclusive && elt.Cmp(end) == 0)
 	}
 }
-
 
 // InitializeNodeFileSystem creates the directory structure for the Chord node's file system.
 // The directory structure is based on the provided node_id.
@@ -695,7 +683,6 @@ func InitializeNodeFileSystem(nodeID string) error {
 	return nil
 }
 
-
 // FileRead reads the content of the file located at the specified fileLoc.
 // It returns the content as a byte slice and any error encountered during the file read operation.
 func FileRead(fileLoc string) ([]byte, error) {
@@ -703,7 +690,6 @@ func FileRead(fileLoc string) ([]byte, error) {
 	file, err := os.ReadFile(fileLoc)
 	return file, err
 }
-
 
 // FetchFileLocation generates the file location for the Chord node identified by nodeId.
 // The file location is determined based on the nodeId and the resources folder.
@@ -713,7 +699,6 @@ func FetchFileLocation(nodeId string) string {
 	return filepath.Join(RESOURCES_FOLDER, nodeId)
 }
 
-
 // FetchFilePath generates the file path for a file identified by 'key' within the Chord node identified by 'nodeKey'.
 // The file path is determined based on the key, nodeKey, and the resources folder.
 // It returns the complete file path as a string.
@@ -722,28 +707,50 @@ func FetchFilePath(key, nodeKey string) string {
 	return filepath.Join(FetchFileLocation(nodeKey), key)
 }
 
+// WriteNodeFile writes data to a file within the Chord node's file system.
+// The file is identified by 'key' and belongs to the Chord node identified by 'nodeID'.
+// It creates the necessary directory structure if not already present.
+// Returns an error if any.
+func WriteNodeFile(key, nodeID string, data []byte) error {
+	// Fetch the directory location for the Chord node
+	directory := FetchFileLocation(nodeID)
 
-func WriteNodeFile(key, node_Id string, data []byte) error {
-	directory := FetchFileLocation(node_Id)
+	// Create the necessary directory structure if not already present
 	err := os.MkdirAll(directory, DIR_PRIVILEGES)
 	if err != nil {
 		return err
 	}
+
+	// Write data to the specified file with appropriate privileges
 	return os.WriteFile(filepath.Join(directory, key), data, FILE_PRIVILEGES)
 }
 
-func WriteNodeFiles(node_Id string, files map[string]*[]byte) []error {
-	folder := FetchFileLocation(node_Id)
+// WriteNodeFiles writes multiple files to the Chord node's file system.
+// The files are specified in the 'files' map, where keys represent file names and values are the corresponding data.
+// The files belong to the Chord node identified by 'nodeID'.
+// It creates the necessary directory structure if not already present.
+// Returns a slice of errors encountered during the write process.
+func WriteNodeFiles(nodeID string, files map[string]*[]byte) []error {
+	// Fetch the directory location for the Chord node
+	folder := FetchFileLocation(nodeID)
+
+	// Create the necessary directory structure if not already present
 	err := os.MkdirAll(folder, DIR_PRIVILEGES)
 	if err != nil {
 		return []error{err}
 	}
-	Writeerrs := []error{}
+
+	// Initialize a slice to store errors encountered during file writes
+	writeErrors := []error{}
+
+	// Iterate over the files in the map and write each file to the node's file system
 	for key, data := range files {
-		Writeerr := os.WriteFile(FetchFilePath(key, node_Id), *data, FILE_PRIVILEGES)
-		if Writeerr != nil {
-			Writeerrs = append(Writeerrs, Writeerr)
+		writeErr := os.WriteFile(FetchFilePath(key, nodeID), *data, FILE_PRIVILEGES)
+		if writeErr != nil {
+			writeErrors = append(writeErrors, writeErr)
 		}
 	}
-	return Writeerrs
+
+	// Return the slice of errors (if any)
+	return writeErrors
 }
