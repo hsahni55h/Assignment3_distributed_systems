@@ -9,11 +9,6 @@ import (
 	"net/rpc"
 )
 
-// NodeDetails represents details of a Chord node.
-type NodeDetails struct {
-	// Details of the node, e.g., ID, IP, and Port
-}
-
 // PredecessorData represents the data structure for the predecessor of a Chord node.
 type PredecessorData struct {
 	Predecessor *NodeDetails
