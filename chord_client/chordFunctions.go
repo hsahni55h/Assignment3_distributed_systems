@@ -95,20 +95,17 @@ func InitializeNode(ownIp string, ownPort, securePort, fingerTableCount, success
 	return nil
 }
 
-
 // FetchChordAddress returns the formatted address string for the given Chord node details.
 // It concatenates the IP address and port in the format "IP:Port".
 func FetchChordAddress(node NodeDetails) string {
 	return fmt.Sprintf("%v:%v", node.IPaddress, node.Port)
 }
 
-
 // FetchSshAddress returns the formatted SSH address string for the given Chord node details.
 // It concatenates the IP address and SSH port in the format "IP:SSHPort".
 func FetchSshAddress(node NodeDetails) string {
 	return fmt.Sprintf("%v:%v", node.IPaddress, node.SecurePort)
 }
-
 
 // IncrementFollowFinger increments the NextFinger index in the Chord node's instance and returns the updated index.
 // The index is rotated within the range [0, FingerTableSize) to follow the Chord finger table structure.
@@ -117,20 +114,17 @@ func IncrementFollowFinger() int {
 	return nodeInstance.NextFinger
 }
 
-
 // UpdateSuccessor updates the Chord node's successor with the provided NodeDetails.
 // It replaces the existing successor list with a new list containing only the provided successor.
 func UpdateSuccessor(successor NodeDetails) {
 	nodeInstance.Successors = []NodeDetails{successor}
 }
 
-
 // UpdateFingerTable updates the Chord node's finger table with the provided successor NodeDetails.
 // It replaces the existing finger table with a new table containing only the provided successor.
 func UpdateFingerTable(successor NodeDetails) {
 	nodeInstance.FingerTable = []NodeDetails{successor}
 }
-
 
 // CheckSuccessorsContainItself checks if the Chord node's own details are present in the provided successors.
 // It returns the index of the Chord node's details in the slice if found, otherwise, it returns -1.
@@ -145,7 +139,6 @@ func CheckSuccessorsContainItself(successors []NodeDetails) int {
 	// If the Chord node's details are not found in the successors, return -1.
 	return -1
 }
-
 
 // AddSuccessors appends the successor's successors to the node's list of successors.
 func AddSuccessors(successors []NodeDetails) {
@@ -173,7 +166,6 @@ func AddSuccessors(successors []NodeDetails) {
 	nodeInstance.Successors = append(nodeInstance.Successors, addElements...)
 }
 
-
 // Successor returns the first successor in the node's list of successors.
 func Successor() NodeDetails {
 	return nodeInstance.Successors[0]
@@ -184,12 +176,10 @@ func SetPredecessor(predecessor *NodeDetails) {
 	nodeInstance.Predecessor = predecessor
 }
 
-
 // Get returns the Chord node instance.
 func Get() Node {
 	return nodeInstance
 }
-
 
 // Lookup finds the Chord node responsible for the given file key.
 // It returns the details of the responsible node or an error if the operation fails.
@@ -201,7 +191,6 @@ func Lookup(fileKey big.Int) (*NodeDetails, error) {
 	}
 	return foundNode, nil
 }
-
 
 // StoreFile stores a file in the Chord DHT.
 // It returns the details of the node where the file is stored, the identifier of the stored file, or an error if the operation fails.
@@ -255,7 +244,6 @@ func StoreFile(fileLoc string, ssh bool, encrypt bool) (*NodeDetails, *big.Int, 
 	return node, fileIdentifier, nil
 }
 
-
 // FetchNodeState retrieves the state information of a Chord node.
 // It returns a string containing the node's identifier, IP address, port, and secure port.
 // If collectionItem is true, it includes additional information such as the index and ideal identifier.
@@ -276,25 +264,45 @@ func FetchNodeState(node NodeDetails, collectionItem bool, index int, idealIdent
 
 type CalculateIdealIdentifier func(int) big.Int
 
+// FetchNodeArrayState retrieves the state information of an array of Chord nodes.
+// It returns a string containing the details of each node, including identifier, IP address, port, and secure port.
+// The calculateIdealIdentifier function is used to compute the ideal identifier for each node based on its position in the array.
 func FetchNodeArrayState(nodes []NodeDetails, calculateIdealIdentifier CalculateIdealIdentifier) (*string, error) {
+	// Initialize an empty string to store the status information
 	status := new(string)
+
+	// Iterate through each node in the array
 	for position, object := range nodes {
+		// Calculate the ideal identifier for the current node
 		idealIdentifier := calculateIdealIdentifier(position)
+
+		// Fetch the state information for the current node
 		info, err := FetchNodeState(object, true, position, &idealIdentifier)
 		if err != nil {
 			return nil, err
 		}
+
+		// Append the node's state information to the status string
 		*status += *info + "\n\n"
 	}
+
 	return status, nil
 }
 
+// FetchState retrieves the detailed state information of the current Chord node.
+// It returns a string containing information such as the node's identifier, IP address, port, secure port,
+// predecessor details, successor details, and finger table entries.
 func FetchState() (*string, error) {
+	// Get the current Chord node
 	node := Get()
+
+	// Fetch the state information for the current node
 	status, err := FetchNodeState(node.Details, false, -1, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Append information about the predecessor to the status string
 	*status += "Predecessor: "
 	if node.Predecessor == nil {
 		*status += "None \n"
@@ -304,7 +312,10 @@ func FetchState() (*string, error) {
 
 	*status += "\n\nSuccessors:\n"
 
-	successorStatus, err := FetchNodeArrayState(node.Successors, func(i int) big.Int { return *new(big.Int).Add(big.NewInt(int64(i+1)), &node.Details.ID) })
+	// Fetch and append information about the successors to the status string
+	successorStatus, err := FetchNodeArrayState(node.Successors, func(i int) big.Int {
+		return *new(big.Int).Add(big.NewInt(int64(i+1)), &node.Details.ID)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +327,10 @@ func FetchState() (*string, error) {
 
 	*status += "\nFinger table:\n"
 
-	fingerTableStatus, err := FetchNodeArrayState(node.FingerTable, func(i int) big.Int { return *Jump(node.Details.ID, i) })
+	// Fetch and append information about the finger table entries to the status string
+	fingerTableStatus, err := FetchNodeArrayState(node.FingerTable, func(i int) big.Int {
+		return *Jump(node.Details.ID, i)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -325,77 +339,135 @@ func FetchState() (*string, error) {
 	} else {
 		*status += *fingerTableStatus
 	}
+
 	return status, nil
 }
 
+// SearchSuccessor searches for the successor of the specified identifier in the Chord ring.
+// It returns a boolean indicating whether the current Chord node is the successor,
+// and the details of the successor node.
 func SearchSuccessor(id big.Int) (bool, NodeDetails) {
+	// Get the current Chord node
 	node := Get()
+
+	// Check if the identifier is within the range of the current Chord node's successors
 	if Within(&node.Details.ID, &id, &node.Successors[0].ID, true) {
 		log.Printf("Successor search Id: %v, result: %v, %v", id.String(), true, node.Successors[0])
 		return true, node.Successors[0]
 	}
+
+	// Find the nearest preceding node to the given identifier
 	nodeNearest := NearestPrecedingNode(id)
 	log.Printf("Successor search Id: %v, result: %v, %v", id.String(), false, nodeNearest)
 	return false, nodeNearest
 }
 
+// FindNode searches for the Chord node responsible for the specified identifier in the Chord ring.
+// It starts the search from the given node details and takes a specified number of steps.
+// It returns the details of the identified node or an error if the successor is not found.
 func FindNode(id big.Int, start NodeDetails, Steps int) (*NodeDetails, error) {
 	identified := false
 	successorNode := start
+
+	// Perform a series of steps to find the successor node
 	for i := 0; i < Steps; i++ {
-		var res, err = RpcSearchSuccessor(FetchChordAddress(successorNode), &id)
+		// Call RPC to search for the successor of the given identifier
+		res, err := RpcSearchSuccessor(FetchChordAddress(successorNode), &id)
 		if err != nil {
 			return nil, err
 		}
+
+		// Check if the successor is found
 		identified = res.Found
 		if identified {
 			return &res.Node, nil
 		}
+
+		// Update the successor node for the next step
 		successorNode = res.Node
 	}
+
+	// Return an error if the successor is not found after the specified number of steps
 	return nil, errors.New("successor not found")
 }
 
+// FindNearPrecedingCandidate finds the nearest preceding node in the finger table of a Chord node.
+// It takes the current Chord node, its finger table, and the target identifier as parameters.
+// It returns a pointer to the nearest preceding node found in the finger table.
 func FindNearPrecedingCandidate(n Node, table []NodeDetails, id big.Int) *NodeDetails {
 	for i := len(table) - 1; i >= 0; i-- {
+		// Check if the current finger table entry is a valid candidate
 		if Within(&n.Details.ID, &table[i].ID, &id, false) {
 			return &table[i]
 		}
 	}
+	// Return nil if no valid candidate is found in the finger table
 	return nil
 }
 
+// NearestPrecedingNode finds the nearest preceding node to the given identifier.
+// It takes the target identifier as a parameter.
+// It returns the NodeDetails of the nearest preceding node.
 func NearestPrecedingNode(id big.Int) NodeDetails {
 	node := Get()
+
+	// Find the nearest preceding node in the FingerTable.
 	var candidate *NodeDetails = FindNearPrecedingCandidate(node, node.FingerTable, id)
+
+	// Check the Successors for a closer preceding node.
 	if c := FindNearPrecedingCandidate(node, node.Successors, id); candidate == nil || (c != nil &&
 		Within(&id, &c.ID, &candidate.ID, false)) {
 		candidate = c
 	}
+
+	// Log the result.
 	if candidate != nil {
 		log.Printf("Near preceding node id: %v, result: %v\n", id, *candidate)
 		return *candidate
 	}
+
+	// If no preceding node is found, return the current node's details.
 	log.Printf("Near preceding node id: %v, result: %v\n", id, node.Details)
 	return node.Details
 }
 
+// Begin initializes the Chord node. It sets up the node's details, initializes the node if creating a new ring, and joins an existing ring if specified.
+// Parameters:
+// - ownIp: IP address of the Chord node.
+// - ownPort: Port number of the Chord node.
+// - securePort: Secure port number of the Chord node.
+// - fingerTableCount: Size of the Chord node's finger table.
+// - successorsCount: Number of successors to be maintained by the Chord node.
+// - initNewRing: A boolean indicating whether to initialize a new ring.
+// - joinIp: IP address of the existing Chord node to join (required if initNewRing is false).
+// - joinPort: Port number of the existing Chord node to join (required if initNewRing is false).
+// - additionalId: An optional additional identifier for the Chord node.
+// Returns an error if initialization or joining fails.
 func Begin(ownIp string, ownPort, securePort, fingerTableCount, successorsCount int, initNewRing bool, joinIp *string, joinPort *int, additionalId *big.Int) error {
-	log.Printf("node started %v:%v with securePort port: %v", ownIp, ownPort, securePort)
-	// Predecessor is sets to nil
+	log.Printf("Node started %v:%v with secure port: %v", ownIp, ownPort, securePort)
+
+	// Initialize the Chord node's details.
 	err := InitializeNode(ownIp, ownPort, securePort, fingerTableCount, successorsCount, additionalId)
 	if err != nil {
 		return err
 	}
+
+	// Create a new ring if specified.
 	if initNewRing {
 		CreateRing()
 		return nil
 	}
+
+	// Join an existing ring if specified.
 	if joinIp == nil || joinPort == nil {
-		return errors.New("if createNewRing is set to false, join IP address and join port are required")
+		return errors.New("if initNewRing is set to false, join IP address and join port are required")
 	}
-	temp_Id := Get().Details.ID
-	return JoinRing(*joinIp, *joinPort, &temp_Id, fingerTableCount)
+
+	// Temporarily store the node's ID before joining.
+	tempID := Get().Details.ID
+
+	// Join the existing ring.
+	return JoinRing(*joinIp, *joinPort, &tempID, fingerTableCount)
 }
 
 func CreateRing() {
