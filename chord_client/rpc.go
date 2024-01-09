@@ -158,45 +158,64 @@ func IsAlive(nodeAddress string) bool {
 
 // Predecessor handles the RPC call to get the predecessor of the current node.
 func (t *RPCHandler) Predecessor(empty string, reply *PredecessorData) error {
-	n := Get() // Assuming Get() is a function to retrieve node details.
+	// Get() is a function to retrieve node details.
+	n := Get()
+
+	// Set the reply with the predecessor data
 	*reply = PredecessorData{Predecessor: n.Predecessor}
 	return nil
 }
 
 // Successors handles the RPC call to get the successors of the current node.
 func (t *RPCHandler) Successors(empty string, reply *SuccessorData) error {
-	n := Get() // Assuming Get() is a function to retrieve node details.
+	// Get() is a function to retrieve node details.
+	n := Get()
+
+	// Set the reply with the successors data
 	*reply = SuccessorData{Successors: n.Successors}
 	return nil
 }
 
 // SearchSuccessor handles the RPC call to search for the successor of a given ID.
 func (t *RPCHandler) SearchSuccessor(args *big.Int, reply *FindSuccessorData) error {
-	f, n := SearchSuccessor(*args) // Assuming SearchSuccessor is implemented somewhere.
+	f, n := SearchSuccessor(*args)
+
+	// Set the reply with the search result
 	*reply = FindSuccessorData{Found: f, Node: n}
 	return nil
 }
 
 // Notify handles the RPC call to notify a Chord node.
 func (t *RPCHandler) Notify(args *NodeDetails, reply *string) error {
-	Notify(*args) // Assuming Notify is implemented somewhere.
+	Notify(*args)
 	return nil
 }
 
 // StoreFile handles the RPC call to store a file on a Chord node.
 func (t *RPCHandler) StoreFile(args *FileStorageArguments, reply *string) error {
+	// Convert key to string
 	key := args.Key.String()
+
+	// Log file details
 	log.Printf("saved file %v, data length %v", key, len(args.Data))
+
+	// Get the node ID
 	nodeID := Get().Details.ID
 
-	return WriteNodeFile(key, nodeID.String(), args.Data) // Assuming WriteNodeFile is implemented somewhere.
+	// Assuming WriteNodeFile is implemented somewhere.
+	return WriteNodeFile(key, nodeID.String(), args.Data)
 }
 
 // TransferFiles handles the RPC call to transfer files between Chord nodes.
 func (t *RPCHandler) TransferFiles(args *FileTransferArguments, reply *string) error {
+	// Log the number of files saved
 	log.Printf("Saved %v files", len(args.Files))
+
+	// Get the node ID
 	nodeID := Get().Details.ID
-	errs := WriteNodeFiles(nodeID.String(), args.Files) // Assuming WriteNodeFiles is implemented somewhere.
+
+	// Assuming WriteNodeFiles is implemented somewhere.
+	errs := WriteNodeFiles(nodeID.String(), args.Files)
 	if len(errs) > 0 {
 		return errors.New("failed to write the files")
 	}
