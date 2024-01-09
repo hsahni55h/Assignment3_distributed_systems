@@ -13,21 +13,26 @@ import (
 	"sync"
 )
 
-const (
-	RESOURCES_FOLDER = "./resources"
-	FILE_PRIVILEGES            = 0o600
-	DIR_PRIVILEGES             = 0o700
-)
+// RESOURCES_FOLDER represents the path to the folder containing resources.
+const RESOURCES_FOLDER = "./resources"
 
+// FILE_PRIVILEGES represents the file access privileges (in octal) for newly created files.
+const FILE_PRIVILEGES = 0o600
+
+// DIR_PRIVILEGES represents the directory access privileges (in octal) for newly created directories.
+const DIR_PRIVILEGES = 0o700
+
+// NodeDetails represents the details of a Chord node.
 type NodeDetails struct {
-	IPaddress      string
-	Port    int
+	IPaddress  string
+	Port       int
 	SecurePort int
 	ID         big.Int
 }
 
+// Node represents a Chord node in the distributed system.
 type Node struct {
-	Details            NodeDetails
+	Details         NodeDetails
 	FingerTable     []NodeDetails
 	FingerTableSize int
 	Predecessor     *NodeDetails
@@ -36,33 +41,48 @@ type Node struct {
 	NextFinger      int
 }
 
+// once is a synchronization mechanism used to ensure the singleton pattern for the Node instance.
 var once sync.Once
+
+// nodeInstance is a singleton instance of the Chord Node.
 var nodeInstance Node
 
+// InitializeNode initializes the Chord node with the provided parameters.
+// It creates a singleton instance of the Chord node using the provided IP address, port, secure port, finger table count,
+// successors count, and additional identifier (if provided).
+// Returns an error if the sizes of finger table or successors are less than 1.
 func InitializeNode(ownIp string, ownPort, securePort, fingerTableCount, successorsCount int, additionalId *big.Int) error {
+	// Check if the sizes are valid
 	if fingerTableCount < 1 || successorsCount < 1 {
 		return errors.New("sizes need to be at least 1")
 	}
+
+	// Initialize the Chord node using the singleton pattern
 	once.Do(func() {
-		var address = string(ownIp) + ":" + string(fmt.Sprintf("%v", ownPort))
+		// Create the address string by concatenating IP and port
+		var address = ownIp + ":" + fmt.Sprintf("%v", ownPort)
 		var Details NodeDetails
+
+		// Check if an additional identifier is provided
 		if additionalId == nil {
 			Details = NodeDetails{
-				IPaddress:      ownIp,
-				Port:    ownPort,
+				IPaddress:  ownIp,
+				Port:       ownPort,
 				SecurePort: securePort,
-				ID:         *GenerateHash(string(address)),
+				ID:         *GenerateHash(address),
 			}
 		} else {
 			Details = NodeDetails{
-				IPaddress:      ownIp,
-				Port:    ownPort,
+				IPaddress:  ownIp,
+				Port:       ownPort,
 				SecurePort: securePort,
 				ID:         *additionalId,
 			}
 		}
+
+		// Create the singleton instance of the Chord node
 		nodeInstance = Node{
-			Details:            Details,
+			Details:         Details,
 			FingerTable:     []NodeDetails{},
 			Predecessor:     nil,
 			FingerTableSize: fingerTableCount,
@@ -71,55 +91,88 @@ func InitializeNode(ownIp string, ownPort, securePort, fingerTableCount, success
 			NextFinger:      -1,
 		}
 	})
+
 	return nil
 }
 
+
+// FetchChordAddress returns the formatted address string for the given Chord node details.
+// It concatenates the IP address and port in the format "IP:Port".
 func FetchChordAddress(node NodeDetails) string {
 	return fmt.Sprintf("%v:%v", node.IPaddress, node.Port)
 }
 
+
+// FetchSshAddress returns the formatted SSH address string for the given Chord node details.
+// It concatenates the IP address and SSH port in the format "IP:SSHPort".
 func FetchSshAddress(node NodeDetails) string {
 	return fmt.Sprintf("%v:%v", node.IPaddress, node.SecurePort)
 }
 
+
+// IncrementFollowFinger increments the NextFinger index in the Chord node's instance and returns the updated index.
+// The index is rotated within the range [0, FingerTableSize) to follow the Chord finger table structure.
 func IncrementFollowFinger() int {
 	nodeInstance.NextFinger = (nodeInstance.NextFinger + 1) % nodeInstance.FingerTableSize
 	return nodeInstance.NextFinger
 }
 
+
+// UpdateSuccessor updates the Chord node's successor with the provided NodeDetails.
+// It replaces the existing successor list with a new list containing only the provided successor.
 func UpdateSuccessor(successor NodeDetails) {
 	nodeInstance.Successors = []NodeDetails{successor}
 }
 
+
+// UpdateFingerTable updates the Chord node's finger table with the provided successor NodeDetails.
+// It replaces the existing finger table with a new table containing only the provided successor.
 func UpdateFingerTable(successor NodeDetails) {
 	nodeInstance.FingerTable = []NodeDetails{successor}
 }
 
-func CheckSuccesorsContainItself(successors []NodeDetails) int {
+
+// CheckSuccessorsContainItself checks if the Chord node's own details are present in the provided successors.
+// It returns the index of the Chord node's details in the slice if found, otherwise, it returns -1.
+func CheckSuccessorsContainItself(successors []NodeDetails) int {
 	for index, item := range successors {
+		// Compare the ID of the Chord node with the ID of each successor in the provided slice.
 		if item.ID.Cmp(&nodeInstance.Details.ID) == 0 {
+			// If the Chord node's details are found in the successors, return the index.
 			return index
 		}
 	}
+	// If the Chord node's details are not found in the successors, return -1.
 	return -1
 }
 
-// Append successor's successors to the node's list of successors.
+
+// AddSuccessors appends the successor's successors to the node's list of successors.
 func AddSuccessors(successors []NodeDetails) {
-	ElementsCount := nodeInstance.SuccessorsSize - 1
+	// Calculate the maximum number of elements that can be added to the successors slice.
+	elementsCount := nodeInstance.SuccessorsSize - 1
+
 	var addElements []NodeDetails
+
+	// Ensure that the number of elements to add does not exceed the maximum allowed.
 	// To avoid panic
-	if len(successors) > ElementsCount {
-		addElements = successors[:ElementsCount]
+	if len(successors) > elementsCount {
+		addElements = successors[:elementsCount]
 	} else {
 		addElements = successors
 	}
-	index := CheckSuccesorsContainItself(addElements)
+
+	// Check if the Chord node's own details are present in the elements to add.
+	index := CheckSuccessorsContainItself(addElements)
 	if index != -1 {
+		// If found, truncate the elements to add up to the index.
 		addElements = addElements[:index]
 	}
+
+	// Append the elements to add to the node's list of successors.
 	nodeInstance.Successors = append(nodeInstance.Successors, addElements...)
 }
+
 
 func Successor() NodeDetails {
 	return nodeInstance.Successors[0]
