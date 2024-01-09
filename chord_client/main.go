@@ -254,7 +254,8 @@ func verifyCommand(cmdArgs []string) error {
 	if len(cmdArgs) <= 0 {
 		return errors.New("please provide a command as an input")
 	}
-	cmd, ok := FetchCommands()[cmdArgs[0]]
+	commands := FetchCommands()
+	cmd, ok := commands[cmdArgs[0]]
 	if !ok {
 		return errors.New("command " + cmdArgs[0] + " does not exist")
 	}
@@ -265,6 +266,7 @@ func verifyCommand(cmdArgs []string) error {
 	}
 	return nil
 }
+
 
 
 // getTurnOffOption checks if the specified option in cmdArr is set to true.
@@ -323,23 +325,34 @@ func executeCommand(cmdArr []string) {
 
 // RunCommands continuously prompts the user for Chord client commands and executes them.
 func RunCommands() {
-	var scanner = bufio.NewReader(os.Stdin)
+	// Initialize a scanner to read user input from the command line.
+	scanner := bufio.NewReader(os.Stdin)
+
+	// Continuously prompt the user for commands and execute them.
 	for {
 		fmt.Print("Chord client: ")
+
+		// Read the user input until a newline character is encountered.
 		args, err := scanner.ReadString('\n')
 		if err != nil {
 			fmt.Println("Type command in a single line.")
 			continue
 		}
+
+		// Tokenize the input into command arguments.
 		cmdArgs := strings.Fields(args)
-		var errVerify = verifyCommand(cmdArgs)
-		if errVerify != nil {
+
+		// Verify the validity of the command arguments.
+		if errVerify := verifyCommand(cmdArgs); errVerify != nil {
 			fmt.Println(errVerify.Error())
 			continue
 		}
+
+		// Execute the command with the provided arguments.
 		executeCommand(cmdArgs)
 	}
 }
+
 
 
 // Schedule runs the given function in a goroutine at regular intervals.
