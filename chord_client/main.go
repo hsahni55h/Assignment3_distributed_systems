@@ -251,21 +251,31 @@ func FetchCommands() map[string]Command {
 
 // verifyCommand checks the validity of the given command arguments.
 func verifyCommand(cmdArgs []string) error {
+	// Check if the number of command arguments is less than or equal to 0.
 	if len(cmdArgs) <= 0 {
 		return errors.New("please provide a command as an input")
 	}
+
+	// Fetch the available commands and their structures.
 	commands := FetchCommands()
+
+	// Retrieve the command structure for the specified command.
 	cmd, ok := commands[cmdArgs[0]]
 	if !ok {
+		// Return an error if the specified command does not exist.
 		return errors.New("command " + cmdArgs[0] + " does not exist")
 	}
 
 	// The first argument is always the command.
+	// Check if the number of provided parameters is within the valid range.
 	if len(cmdArgs)-1 < cmd.requiredParams || len(cmdArgs)-1 > cmd.optionalParams+cmd.requiredParams {
 		return errors.New(cmd.usageString)
 	}
+
+	// The command arguments are valid.
 	return nil
 }
+
 
 
 
