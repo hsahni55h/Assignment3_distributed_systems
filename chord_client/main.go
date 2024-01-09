@@ -117,19 +117,19 @@ func main() {
 }
 
 // ParseFlags reads and parses the command-line flags for the Chord client.
-// It sets the provided ChordFlags structure with the parsed values.
-// Returns an error if the flags are invalid or not specified.
+// It populates the provided ChordFlags structure with the parsed values.
+// An error is returned if the flags are invalid or not specified.
 func ParseFlags(f *ChordFlags) error {
 	// Define command-line flags and their descriptions
-	flag.StringVar(&f.LocalIp, "a", INVALID_STRING, "The IP address that the Chord client will bind to and advertise to other nodes. Represented as an ASCII string (e.g., 128.8.126.63). Must be specified.")
-	flag.IntVar(&f.LocalPort, "p", INVALID_INT, "The port that the Chord client will bind to and listen on. Represented as a base-10 integer. Must be specified.")
-	flag.StringVar(&f.JoinNodeIP, "ja", INVALID_STRING, "The IP address of the machine running a Chord node. The Chord client will join this node's ring. Represented as an ASCII string (e.g., 128.8.126.63). Must be specified if --jp is specified.")
-	flag.IntVar(&f.JoinNodePort, "jp", INVALID_INT, "The port that an existing Chord node is bound to and listening on. The Chord client will join this node's ring. Represented as a base-10 integer. Must be specified if --ja is specified.")
-	flag.IntVar(&f.StabilizeInterval, "ts", INVALID_INT, "The time in milliseconds between invocations of 'stabilize'. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
-	flag.IntVar(&f.FixFingersInterval, "tff", INVALID_INT, "The time in milliseconds between invocations of 'fix fingers'. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
-	flag.IntVar(&f.CheckPredInterval, "tcp", INVALID_INT, "The time in milliseconds between invocations of 'check predecessor'. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
-	flag.IntVar(&f.NumSuccessors, "r", INVALID_INT, "The number of successors maintained by the Chord client. Represented as a base-10 integer. Must be specified, with a value in the range of [1,32].")
-	flag.StringVar(&f.IDOverride, "i", INVALID_STRING, "The identifier (ID) assigned to the Chord client, which will override the ID computed by the SHA1 sum of the client's IP address and port number. Represented as a string of 40 characters matching [0-9a-fA-F]. Optional parameter.")
+	flag.StringVar(&f.LocalIp, "a", INVALID_STRING, "IP address for Chord client binding and advertisement. Must be specified as an ASCII string (e.g., 128.8.126.63).")
+	flag.IntVar(&f.LocalPort, "p", INVALID_INT, "Port for Chord client binding and listening. Must be specified as a base-10 integer.")
+	flag.StringVar(&f.JoinNodeIP, "ja", INVALID_STRING, "IP address of a Chord node for joining its ring. Must be specified if --jp is used.")
+	flag.IntVar(&f.JoinNodePort, "jp", INVALID_INT, "Port of an existing Chord node for joining its ring. Must be specified if --ja is used.")
+	flag.IntVar(&f.StabilizeInterval, "ts", INVALID_INT, "Time in milliseconds between 'stabilize' invocations. Must be specified in the range [1,60000].")
+	flag.IntVar(&f.FixFingersInterval, "tff", INVALID_INT, "Time in milliseconds between 'fix fingers' invocations. Must be specified in the range [1,60000].")
+	flag.IntVar(&f.CheckPredInterval, "tcp", INVALID_INT, "Time in milliseconds between 'check predecessor' invocations. Must be specified in the range [1,60000].")
+	flag.IntVar(&f.NumSuccessors, "r", INVALID_INT, "Number of successors maintained by the Chord client. Must be specified in the range [1,32].")
+	flag.StringVar(&f.IDOverride, "i", INVALID_STRING, "Identifier (ID) assigned to the Chord client, overriding the ID computed by the SHA1 sum of the client's IP address and port number. Must be a string of 40 characters matching [0-9a-fA-F]. Optional parameter.")
 
 	// Parse the command-line flags
 	flag.Parse()
@@ -137,6 +137,7 @@ func ParseFlags(f *ChordFlags) error {
 	// Validate the parsed flags
 	return validateFlags(f)
 }
+
 
 // withinRange checks if a given value is within the specified range [startRange, endRange].
 func withinRange(value, startRange, endRange int) bool {
@@ -328,7 +329,6 @@ func executeCommand(cmdArr []string) {
 		fmt.Println("Command not found")
 	}
 }
-
 
 // RunCommands continuously prompts the user for Chord client commands and executes them.
 func RunCommands() {
