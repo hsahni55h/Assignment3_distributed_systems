@@ -140,13 +140,16 @@ func ParseFlags(f *ChordFlags) error {
 }
 
 
+// withinRange checks if a value is within a specified range [startRange, endRange].
 func withinRange(f, startRange, endRange int) bool {
 	return startRange <= f && f <= endRange
 }
 
+// errorMessage generates an error message for a missing or invalid flag.
 func errorMessage(flagname, description string) string {
-	return fmt.Sprintf("please set %v: %v\n", flagname, description)
+	return fmt.Sprintf("Please set %v: %v\n", flagname, description)
 }
+
 
 // validateFlags checks if the parsed ChordFlags structure has valid values.
 // Returns an error if the flags are invalid.
@@ -216,6 +219,7 @@ func validateFlags(f *ChordFlags) error {
 }
 
 
+// GetOverrideId returns the override ID provided in ChordFlags, or nil if not set.
 func (flag ChordFlags) GetOverrideId() *string {
 	if flag.IDOverride == INVALID_STRING {
 		return nil
@@ -223,11 +227,14 @@ func (flag ChordFlags) GetOverrideId() *string {
 	return &flag.IDOverride
 }
 
-// Intialize ring if join address and joinport are not provided
+
+// CheckInitializeRing returns true if join address and join port are not provided, indicating the initialization of a new ring.
 func (flag ChordFlags) CheckInitializeRing() bool {
 	return flag.JoinNodeIP == INVALID_STRING && flag.JoinNodePort == INVALID_INT
 }
 
+
+// FetchCommands returns a map of available commands with their respective Command structures.
 func FetchCommands() map[string]Command {
 	return map[string]Command{
 		"Lookup":     {1, 0, "usage: Lookup <filename>"},
@@ -236,22 +243,26 @@ func FetchCommands() map[string]Command {
 	}
 }
 
+
+f// verifyCommand checks the validity of the given command arguments.
 func verifyCommand(cmdArgs []string) error {
 	if len(cmdArgs) <= 0 {
 		return errors.New("please provide a command as an input")
 	}
 	cmd, ok := FetchCommands()[cmdArgs[0]]
 	if !ok {
-		return errors.New("command " + cmdArgs[0] + " does not exists")
+		return errors.New("command " + cmdArgs[0] + " does not exist")
 	}
 
-	// first arg is always the command
+	// The first argument is always the command.
 	if len(cmdArgs)-1 < cmd.requiredParams || len(cmdArgs)-1 > cmd.optionalParams+cmd.requiredParams {
 		return errors.New(cmd.usageString)
 	}
 	return nil
 }
 
+
+// getTurnOffOption checks if the specified option in cmdArr is set to true.
 func getTurnOffOption(cmdArr []string, index int) bool {
 	if len(cmdArr) > index && (strings.ToLower(cmdArr[index]) == "true" || strings.ToLower(cmdArr[index]) == "t") {
 		return true
@@ -259,6 +270,8 @@ func getTurnOffOption(cmdArr []string, index int) bool {
 	return false
 }
 
+
+// executeCommand executes the specified command based on cmdArr.
 func executeCommand(cmdArr []string) {
 	switch cmdArr[0] {
 	case "Lookup":
@@ -278,7 +291,7 @@ func executeCommand(cmdArr []string) {
 	case "StoreFile":
 		ssh := getTurnOffOption(cmdArr, 2)
 		encryption := getTurnOffOption(cmdArr, 3)
-		node, file_Id, errStore := StoreFile(cmdArr[1], ssh, encryption)
+		node, fileID, errStore := StoreFile(cmdArr[1], ssh, encryption)
 		if errStore != nil {
 			fmt.Println(errStore.Error())
 			return
@@ -289,7 +302,7 @@ func executeCommand(cmdArr []string) {
 			return
 		}
 		fmt.Println("Stored file successfully")
-		fmt.Printf("FileId: %v\nStored at:\n%v\n", file_Id.String(), *status)
+		fmt.Printf("FileID: %v\nStored at:\n%v\n", fileID.String(), *status)
 	case "PrintState":
 		PrintState, err := FetchState()
 		if err != nil {
@@ -298,10 +311,12 @@ func executeCommand(cmdArr []string) {
 		}
 		fmt.Println(*PrintState)
 	default:
-		fmt.Println("command not Found")
+		fmt.Println("Command not found")
 	}
 }
 
+
+// RunCommands continuously prompts the user for Chord client commands and executes them.
 func RunCommands() {
 	var scanner = bufio.NewReader(os.Stdin)
 	for {
@@ -321,6 +336,8 @@ func RunCommands() {
 	}
 }
 
+
+// Schedule runs the given function in a goroutine at regular intervals.
 func Schedule(function func(), t time.Duration) {
 	go func() {
 		for {
@@ -329,3 +346,4 @@ func Schedule(function func(), t time.Duration) {
 		}
 	}()
 }
+
