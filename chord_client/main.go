@@ -147,9 +147,11 @@ func withinRange(value, startRange, endRange int) bool {
 
 
 // errorMessage generates an error message for a missing or invalid flag.
+// Format: "Please set <flagname>: <description>"
 func errorMessage(flagname, description string) string {
 	return fmt.Sprintf("Please set %v: %v\n", flagname, description)
 }
+
 
 
 // validateFlags checks if the parsed ChordFlags structure has valid values.
@@ -237,12 +239,14 @@ func (flag ChordFlags) CheckInitializeRing() bool {
 
 // FetchCommands returns a map of available commands with their respective Command structures.
 func FetchCommands() map[string]Command {
-	return map[string]Command{
+	commands := map[string]Command{
 		"Lookup":     {1, 0, "usage: Lookup <filename>"},
 		"StoreFile":  {1, 2, "usage: StoreFile <filepathOnDisk> [ssh: default=false, t or true to enable] encrypt file: default=false, t or true to enable]"},
 		"PrintState": {0, 0, "usage: PrintState"},
 	}
+	return commands
 }
+
 
 
 // verifyCommand checks the validity of the given command arguments.
