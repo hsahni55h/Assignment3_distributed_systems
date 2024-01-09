@@ -154,21 +154,21 @@ func errorMessage(flagname, description string) string {
 // validateFlags checks if the parsed ChordFlags structure has valid values.
 // Returns an error if the flags are invalid.
 func validateFlags(f *ChordFlags) error {
-	var errorString = ""
+	var errorString strings.Builder
 
 	// Validate LocalIp
 	if f.LocalIp == INVALID_STRING {
-		errorString += errorMessage("-a", "ASCII string of the IP address to bind the Chord client to.")
+		errorString.WriteString(errorMessage("-a", "Please specify the IP address to bind the Chord client to."))
 	}
 
 	// Validate LocalPort
 	if f.LocalPort == INVALID_INT {
-		errorString += errorMessage("-p", "port number that the Chord client listens on.")
+		errorString.WriteString(errorMessage("-p", "Please specify the port number that the Chord client listens on."))
 	}
 
 	// Validate SecurePort
 	if f.SecurePort == INVALID_INT {
-		errorString += errorMessage("-sp", "port that the Chord client's SSH server is listening on.")
+		errorString.WriteString(errorMessage("-sp", "Please specify the port that the Chord client's SSH server is listening on."))
 	}
 
 	// Validate JoinNodeIP and JoinNodePort
@@ -179,27 +179,27 @@ func validateFlags(f *ChordFlags) error {
 		} else {
 			flagname = "--jp"
 		}
-		errorString += errorMessage(flagname, "If either —ja (join address) or —jp (join port) is used, both must be given.")
+		errorString.WriteString(errorMessage(flagname, "If either --ja (join address) or --jp (join port) is used, both must be given."))
 	}
 
 	// Validate StabilizeInterval
 	if !withinRange(f.StabilizeInterval, 1, 60000) {
-		errorString += errorMessage("--ts", "Runtime for the stabilize call in milliseconds, in the range [1, 60000].")
+		errorString.WriteString(errorMessage("--ts", "Stabilize interval must be in the range [1, 60000] milliseconds."))
 	}
 
 	// Validate FixFingersInterval
 	if !withinRange(f.FixFingersInterval, 1, 60000) {
-		errorString += errorMessage("--tff", "Runtime for fix fingers call in milliseconds, in the range [1, 60000].")
+		errorString.WriteString(errorMessage("--tff", "Fix fingers interval must be in the range [1, 60000] milliseconds."))
 	}
 
 	// Validate CheckPredInterval
 	if !withinRange(f.CheckPredInterval, 1, 60000) {
-		errorString += errorMessage("--tcp", "Runtime for predecessor call in milliseconds, in the range [1, 60000].")
+		errorString.WriteString(errorMessage("--tcp", "Check predecessor interval must be in the range [1, 60000] milliseconds."))
 	}
 
 	// Validate NumSuccessors
 	if !withinRange(f.NumSuccessors, 1, 32) {
-		errorString += errorMessage("-r", "Range of the number of successors [1, 32].")
+		errorString.WriteString(errorMessage("-r", "Number of successors must be in the range [1, 32]."))
 	}
 
 	// Validate IDOverride
@@ -207,16 +207,17 @@ func validateFlags(f *ChordFlags) error {
 		var noOfChars = RING_SIZE_BITS / 4
 		var _, err = hex.DecodeString(f.IDOverride)
 		if err != nil || noOfChars != len(f.IDOverride) {
-			errorString += errorMessage("-i", fmt.Sprintf("chord-provided hexadecimal override node identification, values: [0-9][a-f][A-F], total values: %v.", noOfChars))
+			errorString.WriteString(errorMessage("-i", fmt.Sprintf("Chord-provided hexadecimal override node identification should have %v characters [0-9a-fA-F].", noOfChars)))
 		}
 	}
 
 	// Return an error if any validation checks fail
-	if errorString == "" {
+	if errorString.Len() == 0 {
 		return nil
 	}
-	return errors.New(errorString)
+	return errors.New(errorString.String())
 }
+
 
 // GetOverrideId returns the override ID provided in ChordFlags, or nil if not set.
 func (flag ChordFlags) GetOverrideId() *string {
