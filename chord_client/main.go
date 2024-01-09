@@ -49,9 +49,11 @@ const (
 // main is the entry point of the Chord client.
 func main() {
 	var f ChordFlags
+
+	// Parse command-line flags
 	err := ParseFlags(&f)
 	if err != nil {
-		log.Println("error occurred while reading flags: " + err.Error())
+		log.Println("Error parsing command-line flags: " + err.Error())
 		return
 	}
 
@@ -59,13 +61,15 @@ func main() {
 	logFile := fmt.Sprintf("log%v.txt", f.LocalPort)
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, fs.FileMode.Perm(0o600))
 	if err != nil {
-		log.Println("log file creation failed")
+		log.Println("Failed to create log file")
 		return
 	}
 	defer file.Close()
+
+	// Clear the log file
 	var errTrunc = os.Truncate(logFile, 0)
 	if errTrunc != nil {
-		log.Println("log file creation failed")
+		log.Println("Failed to truncate log file")
 		return
 	}
 	log.SetOutput(file)
@@ -79,7 +83,7 @@ func main() {
 	if overrideID != nil {
 		res, err := HexStringToBytes(*overrideID)
 		if err != nil {
-			log.Println("error while creating additional identifier: " + err.Error())
+			log.Println("Error creating additional identifier: " + err.Error())
 			return
 		}
 		overrideIDBigInt = res
@@ -88,11 +92,11 @@ func main() {
 	// Initialize the Chord node
 	errBegin := Begin(f.LocalIp, f.LocalPort, f.SecurePort, RING_SIZE_BITS, f.NumSuccessors, checkInitNewRing, &f.JoinNodeIP, &f.JoinNodePort, overrideIDBigInt)
 	if errBegin != nil {
-		log.Println("error while initializing node: " + errBegin.Error())
+		log.Println("Error initializing node: " + errBegin.Error())
 		return
 	}
 
-	// Get the current node ID and display it.
+	// Get the current node ID and display it
 	nodeId := Get().Details.ID
 	fmt.Println("Current node ID:", nodeId.String())
 
@@ -102,7 +106,7 @@ func main() {
 	// Setup RPC listener
 	listen, err := net.Listen("tcp", ":"+fmt.Sprintf("%v", f.LocalPort))
 	if err != nil {
-		log.Println("error when initializing the listening socket " + err.Error())
+		log.Println("Error initializing the listening socket: " + err.Error())
 		return
 	}
 	RegisterRPC(&listen)
@@ -115,6 +119,7 @@ func main() {
 	// Run the interactive command-line interface
 	RunCommands()
 }
+
 
 // ParseFlags reads and parses the command-line flags for the Chord client.
 // It populates the provided ChordFlags structure with the parsed values.
@@ -137,7 +142,6 @@ func ParseFlags(f *ChordFlags) error {
 	// Validate the parsed flags
 	return validateFlags(f)
 }
-
 
 // withinRange checks if a given value is within the specified range [startRange, endRange].
 func withinRange(value, startRange, endRange int) bool {
@@ -217,7 +221,6 @@ func validateFlags(f *ChordFlags) error {
 	}
 	return errors.New(errorString.String())
 }
-
 
 // GetOverrideId returns the override ID provided in ChordFlags, or nil if not set.
 func (flag ChordFlags) GetOverrideId() *string {
