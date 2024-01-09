@@ -174,18 +174,25 @@ func AddSuccessors(successors []NodeDetails) {
 }
 
 
+// Successor returns the first successor in the node's list of successors.
 func Successor() NodeDetails {
 	return nodeInstance.Successors[0]
 }
 
+// SetPredecessor sets the predecessor of the Chord node to the provided node details.
 func SetPredecessor(predecessor *NodeDetails) {
 	nodeInstance.Predecessor = predecessor
 }
 
+
+// Get returns the Chord node instance.
 func Get() Node {
 	return nodeInstance
 }
 
+
+// Lookup finds the Chord node responsible for the given file key.
+// It returns the details of the responsible node or an error if the operation fails.
 func Lookup(fileKey big.Int) (*NodeDetails, error) {
 	node := Get()
 	foundNode, err := FindNode(fileKey, node.Details, 32)
@@ -195,18 +202,30 @@ func Lookup(fileKey big.Int) (*NodeDetails, error) {
 	return foundNode, nil
 }
 
+
+// StoreFile stores a file in the Chord DHT.
+// It returns the details of the node where the file is stored, the identifier of the stored file, or an error if the operation fails.
 func StoreFile(fileLoc string, ssh bool, encrypt bool) (*NodeDetails, *big.Int, error) {
+	// Extract the filename from the file location
 	Loc := strings.Split(fileLoc, "/")
 	fileName := Loc[len(Loc)-1]
+
+	// Generate a hash (identifier) for the file based on its name
 	fileIdentifier := GenerateHash(fileName)
+
+	// Look up the Chord node responsible for storing the file
 	node, err := Lookup(*fileIdentifier)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Read the content of the file
 	data, err := FileRead(fileLoc)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Encrypt the file data if encryption is enabled
 	if encrypt {
 		cipherData, err := EncryptData(data)
 		if err != nil {
@@ -214,14 +233,19 @@ func StoreFile(fileLoc string, ssh bool, encrypt bool) (*NodeDetails, *big.Int, 
 		}
 		data = cipherData
 	}
+
+	// Log the attempt to store the file
 	log.Printf("Attempting to store file at %v", *node)
+
+	// Transmit the file using SSH if specified
 	if ssh {
 		fileName := fileIdentifier.String()
-		err3 := TransmitFile(FetchSshAddress(*node), fileName, data)
-		if err3 != nil {
-			return nil, nil, err3
+		err := TransmitFile(FetchSshAddress(*node), fileName, data)
+		if err != nil {
+			return nil, nil, err
 		}
 	} else {
+		// Save the file to the Chord node
 		err := SaveClientFile(FetchChordAddress(*node), *fileIdentifier, data)
 		if err != nil {
 			return nil, nil, err
@@ -231,12 +255,22 @@ func StoreFile(fileLoc string, ssh bool, encrypt bool) (*NodeDetails, *big.Int, 
 	return node, fileIdentifier, nil
 }
 
+
+// FetchNodeState retrieves the state information of a Chord node.
+// It returns a string containing the node's identifier, IP address, port, and secure port.
+// If collectionItem is true, it includes additional information such as the index and ideal identifier.
 func FetchNodeState(node NodeDetails, collectionItem bool, index int, idealIdentifier *big.Int) (*string, error) {
+	// Format the basic node details
 	NodeDetails := fmt.Sprintf("Identifier: %v address: %v:%v SecurePort: %v", node.ID.String(), node.IPaddress, node.Port, node.SecurePort)
+
+	// Include additional information if specified
 	if collectionItem {
 		NodeDetails += fmt.Sprintf("\nIndex: %v\nIdeal Identifier: %v", index, idealIdentifier)
 	}
+
+	// Append a newline character
 	NodeDetails += "\n"
+
 	return &NodeDetails, nil
 }
 
