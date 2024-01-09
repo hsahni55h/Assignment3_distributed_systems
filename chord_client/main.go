@@ -92,7 +92,7 @@ func main() {
 		return
 	}
 
-	// Print the current node ID
+	// Get the current node ID and display it.
 	nodeId := Get().Details.ID
 	fmt.Println("Current node ID:", nodeId.String())
 
@@ -141,9 +141,10 @@ func ParseFlags(f *ChordFlags) error {
 
 
 // withinRange checks if a value is within a specified range [startRange, endRange].
-func withinRange(f, startRange, endRange int) bool {
-	return startRange <= f && f <= endRange
+func withinRange(value, startRange, endRange int) bool {
+	return startRange <= value && value <= endRange
 }
+
 
 // errorMessage generates an error message for a missing or invalid flag.
 func errorMessage(flagname, description string) string {
