@@ -15,41 +15,47 @@ import (
 	"time"
 )
 
+// RING_SIZE_BITS represents the number of bits used for the Chord ring.
 const RING_SIZE_BITS = 160
 
+// ChordFlags holds the command-line flags for the Chord client.
 type ChordFlags struct {
-	LocalIp					string
-	LocalPort             	int
-	SecurePort				int
-	JoinNodeIP             	string
-	JoinNodePort           	int
-	StabilizeInterval      	int
-	FixFingersInterval     	int
-	CheckPredInterval 		int
-	BackupInterval         	int
-	NumSuccessors      		int
-	IDOverride           	string
+	LocalIp             string
+	LocalPort           int
+	SecurePort          int
+	JoinNodeIP          string
+	JoinNodePort        int
+	StabilizeInterval   int
+	FixFingersInterval  int
+	CheckPredInterval   int
+	BackupInterval      int
+	NumSuccessors       int
+	IDOverride          string
 }
 
+// Command represents a command along with its required and optional parameters.
 type Command struct {
-	requiredParams 			int
-	optionalParams 			int
-	usageString    			string
+	requiredParams int
+	optionalParams int
+	usageString    string
 }
 
+// Constants for invalid string and integer values.
 const (
 	INVALID_STRING = "INVALID"
 	INVALID_INT    = -1
 )
 
+// main is the entry point of the Chord client.
 func main() {
 	var f ChordFlags
 	err := ParseFlags(&f)
 	if err != nil {
-		log.Println("error occured while reading flags: " + err.Error())
+		log.Println("error occurred while reading flags: " + err.Error())
 		return
 	}
 
+	// Setup logging to a file
 	logFile := fmt.Sprintf("log%v.txt", f.LocalPort)
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, fs.FileMode.Perm(0o600))
 	if err != nil {
@@ -64,7 +70,10 @@ func main() {
 	}
 	log.SetOutput(file)
 
+	// Check if initializing a new ring is required
 	checkInitNewRing := f.CheckInitializeRing()
+
+	// Handle optional override ID
 	overrideID := f.GetOverrideId()
 	var overrideIDBigInt *big.Int = nil
 	if overrideID != nil {
@@ -76,16 +85,21 @@ func main() {
 		overrideIDBigInt = res
 	}
 
+	// Initialize the Chord node
 	errBegin := Begin(f.LocalIp, f.LocalPort, f.SecurePort, RING_SIZE_BITS, f.NumSuccessors, checkInitNewRing, &f.JoinNodeIP, &f.JoinNodePort, overrideIDBigInt)
 	if errBegin != nil {
-		log.Println("error while intializing node: " + errBegin.Error())
+		log.Println("error while initializing node: " + errBegin.Error())
 		return
 	}
 
+	// Print the current node ID
 	nodeId := Get().Details.ID
 	fmt.Println("Current node ID:", nodeId.String())
+
+	// Initialize the node's file system
 	InitializeNodeFileSystem(nodeId.String())
 
+	// Setup RPC listener
 	listen, err := net.Listen("tcp", ":"+fmt.Sprintf("%v", f.LocalPort))
 	if err != nil {
 		log.Println("error when initializing the listening socket " + err.Error())
@@ -93,13 +107,15 @@ func main() {
 	}
 	RegisterRPC(&listen)
 
-	// background tasks
+	// Schedule background tasks
 	Schedule(Stabilize, time.Duration(f.StabilizeInterval*int(time.Millisecond)))
 	Schedule(FixFingers, time.Duration(f.FixFingersInterval*int(time.Millisecond)))
 	Schedule(CheckPredecessor, time.Duration(f.CheckPredInterval*int(time.Millisecond)))
 
+	// Run the interactive command-line interface
 	RunCommands()
 }
+
 
 func ParseFlags(f *ChordFlags) error {
 	flag.StringVar(&f.LocalIp, "a", INVALID_STRING, "The IP address that the Chord client will bind to, as well as advertise to other nodes. Represented as an ASCII string (e.g., 128.8.126.63). Must be specified.")
