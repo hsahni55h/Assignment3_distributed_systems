@@ -138,10 +138,12 @@ func ParseFlags(f *ChordFlags) error {
 	return validateFlags(f)
 }
 
-// withinRange checks if a value is within a specified range [startRange, endRange].
+// withinRange checks if a given value is within the specified range [startRange, endRange].
 func withinRange(value, startRange, endRange int) bool {
+	// Check if the value falls within the specified range (inclusive).
 	return startRange <= value && value <= endRange
 }
+
 
 // errorMessage generates an error message for a missing or invalid flag.
 // Format: "Please set <flagname>: <description>"
