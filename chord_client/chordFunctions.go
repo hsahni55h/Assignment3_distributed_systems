@@ -666,35 +666,62 @@ func Jump(nodeIdentifier big.Int, fingerentry int) *big.Int {
 }
 
 
+// Within checks if the given element is within the range [start, end] (inclusive or exclusive).
+// Returns true if the element is within the range, false otherwise.
 func Within(start, elt, end *big.Int, inclusive bool) bool {
 	if end.Cmp(start) > 0 {
+		// Case where end is greater than start
 		return (start.Cmp(elt) < 0 && elt.Cmp(end) < 0) || (inclusive && elt.Cmp(end) == 0)
 	} else {
+		// Case where end is less than or equal to start (wrapping around the ring)
 		return start.Cmp(elt) < 0 || elt.Cmp(end) < 0 || (inclusive && elt.Cmp(end) == 0)
 	}
 }
 
-func InitializeNodeFileSystem(node_id string) error {
-	folder := FetchFileLocation(node_id)
+
+// InitializeNodeFileSystem creates the directory structure for the Chord node's file system.
+// The directory structure is based on the provided node_id.
+// Returns an error if the directory creation fails.
+func InitializeNodeFileSystem(nodeID string) error {
+	// Fetch the file location based on the node_id
+	folder := FetchFileLocation(nodeID)
+
+	// Create the directory structure with the specified permissions
 	err := os.MkdirAll(folder, DIR_PRIVILEGES)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
+
+// FileRead reads the content of the file located at the specified fileLoc.
+// It returns the content as a byte slice and any error encountered during the file read operation.
 func FileRead(fileLoc string) ([]byte, error) {
+	// Read the content of the file
 	file, err := os.ReadFile(fileLoc)
 	return file, err
 }
 
+
+// FetchFileLocation generates the file location for the Chord node identified by nodeId.
+// The file location is determined based on the nodeId and the resources folder.
+// It returns the complete file location as a string.
 func FetchFileLocation(nodeId string) string {
+	// Join the resources folder path with the nodeId to form the complete file location
 	return filepath.Join(RESOURCES_FOLDER, nodeId)
 }
 
+
+// FetchFilePath generates the file path for a file identified by 'key' within the Chord node identified by 'nodeKey'.
+// The file path is determined based on the key, nodeKey, and the resources folder.
+// It returns the complete file path as a string.
 func FetchFilePath(key, nodeKey string) string {
+	// Join the file location for the Chord node with the key to form the complete file path
 	return filepath.Join(FetchFileLocation(nodeKey), key)
 }
+
 
 func WriteNodeFile(key, node_Id string, data []byte) error {
 	directory := FetchFileLocation(node_Id)
