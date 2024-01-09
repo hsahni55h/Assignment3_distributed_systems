@@ -70,13 +70,19 @@ func Predecessor(node string) (*NodeDetails, error) {
 // Successors returns the successors of the specified Chord node.
 func Successors(node string) ([]NodeDetails, error) {
 	var reply SuccessorData
+	// Prepare the request
 	dummyArg := "empty"
+
+	// Make the RPC call
 	err := handleCall(node, "RPCHandler.Successors", &dummyArg, &reply)
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the successors
 	return reply.Successors, err
 }
+
 
 // RpcSearchSuccessor searches for the successor of a Chord node.
 func RpcSearchSuccessor(node string, id *big.Int) (*FindSuccessorData, error) {
