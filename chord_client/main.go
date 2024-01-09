@@ -244,7 +244,7 @@ func FetchCommands() map[string]Command {
 }
 
 
-f// verifyCommand checks the validity of the given command arguments.
+// verifyCommand checks the validity of the given command arguments.
 func verifyCommand(cmdArgs []string) error {
 	if len(cmdArgs) <= 0 {
 		return errors.New("please provide a command as an input")
