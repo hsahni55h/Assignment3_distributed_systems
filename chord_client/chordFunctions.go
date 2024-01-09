@@ -600,14 +600,23 @@ func FixFingers() {
 }
 
 
+// CheckPredecessor checks the liveness of the current node's predecessor.
+// If the predecessor is unresponsive, it sets the predecessor to nil.
 func CheckPredecessor() {
 	node := Get()
+
+	// Check if the predecessor is not nil and is unresponsive.
 	if node.Predecessor != nil && !IsAlive(FetchChordAddress(*node.Predecessor)) {
 		SetPredecessor(nil)
-		log.Printf(" Predecessor set to nil due to unresponsiveness from previous predecessor  %v\n", node.Predecessor)
+		log.Printf("Predecessor set to nil due to unresponsiveness from the previous predecessor %v\n", node.Predecessor)
 	}
 }
 
+
+// HexStringToBytes converts a hexadecimal string to a big.Int.
+// It uses the hex.DecodeString function to convert the hex string to a byte slice.
+// The byte slice is then converted to a big.Int using new(big.Int).SetBytes.
+// If there is an error during the decoding or conversion process, it returns an error.
 func HexStringToBytes(hexString string) (*big.Int, error) {
 	bytes, err := hex.DecodeString(hexString)
 	if err != nil {
@@ -615,6 +624,8 @@ func HexStringToBytes(hexString string) (*big.Int, error) {
 	}
 	return new(big.Int).SetBytes(bytes), nil
 }
+
+
 
 const keyLength = RING_SIZE_BITS
 
