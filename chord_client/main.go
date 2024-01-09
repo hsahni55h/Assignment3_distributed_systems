@@ -20,17 +20,17 @@ const RING_SIZE_BITS = 160
 
 // ChordFlags holds the command-line flags for the Chord client.
 type ChordFlags struct {
-	LocalIp             string
-	LocalPort           int
-	SecurePort          int
-	JoinNodeIP          string
-	JoinNodePort        int
-	StabilizeInterval   int
-	FixFingersInterval  int
-	CheckPredInterval   int
-	BackupInterval      int
-	NumSuccessors       int
-	IDOverride          string
+	LocalIp            string
+	LocalPort          int
+	SecurePort         int
+	JoinNodeIP         string
+	JoinNodePort       int
+	StabilizeInterval  int
+	FixFingersInterval int
+	CheckPredInterval  int
+	BackupInterval     int
+	NumSuccessors      int
+	IDOverride         string
 }
 
 // Command represents a command along with its required and optional parameters.
@@ -116,7 +116,6 @@ func main() {
 	RunCommands()
 }
 
-
 // ParseFlags reads and parses the command-line flags for the Chord client.
 // It sets the provided ChordFlags structure with the parsed values.
 // Returns an error if the flags are invalid or not specified.
@@ -131,28 +130,24 @@ func ParseFlags(f *ChordFlags) error {
 	flag.IntVar(&f.CheckPredInterval, "tcp", INVALID_INT, "The time in milliseconds between invocations of 'check predecessor'. Represented as a base-10 integer. Must be specified, with a value in the range of [1,60000].")
 	flag.IntVar(&f.NumSuccessors, "r", INVALID_INT, "The number of successors maintained by the Chord client. Represented as a base-10 integer. Must be specified, with a value in the range of [1,32].")
 	flag.StringVar(&f.IDOverride, "i", INVALID_STRING, "The identifier (ID) assigned to the Chord client, which will override the ID computed by the SHA1 sum of the client's IP address and port number. Represented as a string of 40 characters matching [0-9a-fA-F]. Optional parameter.")
-	
+
 	// Parse the command-line flags
 	flag.Parse()
-	
+
 	// Validate the parsed flags
 	return validateFlags(f)
 }
-
 
 // withinRange checks if a value is within a specified range [startRange, endRange].
 func withinRange(value, startRange, endRange int) bool {
 	return startRange <= value && value <= endRange
 }
 
-
 // errorMessage generates an error message for a missing or invalid flag.
 // Format: "Please set <flagname>: <description>"
 func errorMessage(flagname, description string) string {
 	return fmt.Sprintf("Please set %v: %v\n", flagname, description)
 }
-
-
 
 // validateFlags checks if the parsed ChordFlags structure has valid values.
 // Returns an error if the flags are invalid.
@@ -221,33 +216,35 @@ func validateFlags(f *ChordFlags) error {
 	return errors.New(errorString)
 }
 
-
 // GetOverrideId returns the override ID provided in ChordFlags, or nil if not set.
 func (flag ChordFlags) GetOverrideId() *string {
+	// Check if the IDOverride is set to the invalid string.
 	if flag.IDOverride == INVALID_STRING {
 		return nil
 	}
+	// Return a pointer to the IDOverride.
 	return &flag.IDOverride
 }
 
-
-// CheckInitializeRing returns true if join address and join port are not provided, indicating the initialization of a new ring.
+// CheckInitializeRing returns true if both join address and join port are not provided,
+// indicating the initialization of a new Chord ring.
 func (flag ChordFlags) CheckInitializeRing() bool {
+	// Check if join address and join port are set to their default values.
 	return flag.JoinNodeIP == INVALID_STRING && flag.JoinNodePort == INVALID_INT
 }
 
-
 // FetchCommands returns a map of available commands with their respective Command structures.
 func FetchCommands() map[string]Command {
+	// Define a map of available commands with their Command structures.
 	commands := map[string]Command{
 		"Lookup":     {1, 0, "usage: Lookup <filename>"},
 		"StoreFile":  {1, 2, "usage: StoreFile <filepathOnDisk> [ssh: default=false, t or true to enable] encrypt file: default=false, t or true to enable]"},
 		"PrintState": {0, 0, "usage: PrintState"},
 	}
+
+	// Return the map of commands.
 	return commands
 }
-
-
 
 // verifyCommand checks the validity of the given command arguments.
 func verifyCommand(cmdArgs []string) error {
@@ -276,17 +273,16 @@ func verifyCommand(cmdArgs []string) error {
 	return nil
 }
 
-
-
-
 // getTurnOffOption checks if the specified option in cmdArr is set to true.
 func getTurnOffOption(cmdArr []string, index int) bool {
+	// Check if there are enough elements in cmdArr and the specified option is set to true.
 	if len(cmdArr) > index && (strings.ToLower(cmdArr[index]) == "true" || strings.ToLower(cmdArr[index]) == "t") {
+		// Return true if the option is set to true.
 		return true
 	}
+	// Return false if the option is not set to true or if there are not enough elements in cmdArr.
 	return false
 }
-
 
 // executeCommand executes the specified command based on cmdArr.
 func executeCommand(cmdArr []string) {
@@ -332,7 +328,6 @@ func executeCommand(cmdArr []string) {
 	}
 }
 
-
 // RunCommands continuously prompts the user for Chord client commands and executes them.
 func RunCommands() {
 	// Initialize a scanner to read user input from the command line.
@@ -363,15 +358,15 @@ func RunCommands() {
 	}
 }
 
-
-
 // Schedule runs the given function in a goroutine at regular intervals.
-func Schedule(function func(), t time.Duration) {
+func Schedule(function func(), interval time.Duration) {
+	// Start a new goroutine to run the provided function at regular intervals.
 	go func() {
 		for {
-			time.Sleep(t)
+			// Sleep for the specified interval before executing the function again.
+			time.Sleep(interval)
+			// Call the provided function.
 			function()
 		}
 	}()
 }
-
