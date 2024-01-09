@@ -144,7 +144,6 @@ func withinRange(value, startRange, endRange int) bool {
 	return startRange <= value && value <= endRange
 }
 
-
 // errorMessage generates an error message for a missing or invalid flag.
 // Format: "Please set <flagname>: <description>"
 func errorMessage(flagname, description string) string {
@@ -288,47 +287,48 @@ func getTurnOffOption(cmdArr []string, index int) bool {
 
 // executeCommand executes the specified command based on cmdArr.
 func executeCommand(cmdArr []string) {
-	switch cmdArr[0] {
+	switch cmd := cmdArr[0]; cmd {
 	case "Lookup":
-		fileId := *GenerateHash(cmdArr[1])
-		fmt.Println("FileID: ", fileId.String())
-		ans, err := Lookup(fileId)
-		if err != nil {
+		// Generate a file ID based on the provided filename.
+		fileID := *GenerateHash(cmdArr[1])
+		fmt.Println("FileID:", fileID.String())
+
+		// Perform a lookup for the file ID in the Chord network.
+		if ans, err := Lookup(fileID); err != nil {
 			fmt.Println(err.Error())
-			return
-		}
-		status, err := FetchNodeState(*ans, false, -1, nil)
-		if err != nil {
+		} else if status, err := FetchNodeState(*ans, false, -1, nil); err != nil {
 			fmt.Println(err.Error())
-			return
+		} else {
+			fmt.Println(*status)
 		}
-		fmt.Println(*status)
+
 	case "StoreFile":
-		ssh := getTurnOffOption(cmdArr, 2)
-		encryption := getTurnOffOption(cmdArr, 3)
-		node, fileID, errStore := StoreFile(cmdArr[1], ssh, encryption)
-		if errStore != nil {
-			fmt.Println(errStore.Error())
-			return
-		}
-		status, err := FetchNodeState(*node, false, -1, nil)
-		if err != nil {
+		// Check if SSH and encryption options are enabled.
+		ssh, encryption := getTurnOffOption(cmdArr, 2), getTurnOffOption(cmdArr, 3)
+
+		// Store the file and obtain the corresponding node and file ID.
+		if node, fileID, err := StoreFile(cmdArr[1], ssh, encryption); err != nil {
 			fmt.Println(err.Error())
-			return
+		} else if status, err := FetchNodeState(*node, false, -1, nil); err != nil {
+			fmt.Println(err.Error())
+		} else {
+			fmt.Println("Stored file successfully")
+			fmt.Printf("FileID: %v\nStored at:\n%v\n", fileID.String(), *status)
 		}
-		fmt.Println("Stored file successfully")
-		fmt.Printf("FileID: %v\nStored at:\n%v\n", fileID.String(), *status)
+
 	case "PrintState":
-		PrintState, err := FetchState()
-		if err != nil {
+		// Fetch and print the overall state of the Chord network.
+		if PrintState, err := FetchState(); err != nil {
 			fmt.Println(err.Error())
-			return
+		} else {
+			fmt.Println(*PrintState)
 		}
-		fmt.Println(*PrintState)
+
 	default:
 		fmt.Println("Command not found")
 	}
 }
+
 
 // RunCommands continuously prompts the user for Chord client commands and executes them.
 func RunCommands() {
