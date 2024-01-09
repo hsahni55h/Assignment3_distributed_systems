@@ -470,29 +470,45 @@ func Begin(ownIp string, ownPort, securePort, fingerTableCount, successorsCount 
 	return JoinRing(*joinIp, *joinPort, &tempID, fingerTableCount)
 }
 
+// CreateRing initializes a new Chord ring. It sets the Chord node as its own successor and updates the finger table accordingly.
 func CreateRing() {
+	// Set the Chord node as its own successor.
 	UpdateSuccessor(Get().Details)
+
+	// Update the finger table with the Chord node as the only entry.
 	UpdateFingerTable(Get().Details)
 }
 
+
+// JoinRing joins the current Chord node to an existing Chord ring.
+// It locates the appropriate position in the ring and updates the successor and finger table accordingly.
 func JoinRing(joinIp string, joinPort int, nodeId *big.Int, maxSteps int) error {
 	// Dummy values only for the method to work
 	joinHash := big.NewInt(-1)
 	securePort := -1
 
+	// Find the successor node to join the ring.
 	successor, err := FindNode(*nodeId, NodeDetails{IPaddress: joinIp, Port: joinPort, SecurePort: securePort, ID: *joinHash}, maxSteps)
 	if err != nil {
 		return err
 	}
+
+	// Update the successor and finger table based on the found successor node.
 	UpdateSuccessor(*successor)
 	UpdateFingerTable(*successor)
+
 	return nil
 }
 
+
+// Stabilize performs the stabilization process for the Chord node.
+// It checks and updates the successor node and fetches the latest list of successors from the current successor.
 func Stabilize() {
 	var nD *NodeDetails
 	successorIndex := -1
 	node := Get()
+
+	// Iterate over the current list of successors to find a predecessor for stabilization.
 	for position, item := range node.Successors {
 		var err error
 		nD, err = Predecessor(FetchChordAddress(item))
@@ -502,16 +518,20 @@ func Stabilize() {
 			break
 		}
 	}
-	// If the successor does not point to a predecessor, then nD might be nil, hence checking for that is necessary.
+
+	// If the successor does not point to a predecessor, then nD might be nil.
+	// Check if nD is not nil and the predecessor is within the expected range.
 	if nD != nil && Within(&node.Details.ID, &nD.ID, &node.Successors[successorIndex].ID, false) {
 		UpdateSuccessor(*nD)
 	} else if nD != nil {
-		// new successor is made the first active successor from the previous list.
+		// If the predecessor is not within the range, make the first active successor from the previous list as the new successor.
 		UpdateSuccessor(node.Successors[successorIndex])
 	} else {
-		// If there are no successors, refer to yourself
+		// If there are no successors, refer to yourself.
 		UpdateSuccessor(node.Details)
 	}
+
+	// Notify the successor about the update and fetch the latest list of successors.
 	if len(nodeInstance.Successors) > 0 {
 		err := RpcNotify(FetchChordAddress(Successor()), node.Details)
 		if err != nil {
@@ -525,44 +545,60 @@ func Stabilize() {
 			log.Printf("Error fetching successors from %v: %v", Successor(), err.Error())
 		}
 	}
+
 	log.Printf("Successor list updated with new successor %v, new length: %v", node.Successors[0], len(node.Successors))
 }
 
+
+// Notify is invoked by another Chord node to inform about its presence.
+// It updates the predecessor of the current node if the incoming node is a suitable predecessor.
 func Notify(node NodeDetails) {
 	n := Get()
 	Msg := fmt.Sprintf("Invoked by: %v with ID: %v, Current predecessor: %v", node.IPaddress, node.ID.String(), n.Predecessor)
+
 	// To avoid getting stuck, make sure that it doesn't have itself as predecessor
 	if n.Predecessor == nil || n.Predecessor.ID.Cmp(&n.Details.ID) == 0 ||
 		Within(&n.Predecessor.ID, &node.ID, &n.Details.ID, false) {
 		SetPredecessor(&node)
-		Msg += ". updated Predecessor."
+		Msg += ". Updated predecessor."
 	} else {
-		Msg += ". not updated Predecessor."
+		Msg += ". Not updated predecessor."
 	}
+
 	log.Printf("%v\n", Msg)
 }
 
+
+// FixFingers updates the finger table by setting the next finger at regular intervals.
+// It calculates the next finger based on the current node's details and updates the finger table.
 func FixFingers() {
 	index := IncrementFollowFinger()
-	log.Printf("next: %v", index)
+	log.Printf("Next finger index: %v", index)
 	nI := Get()
 	idToFix := *Jump(nI.Details.ID, index)
+
 	node, err := FindNode(idToFix, nI.Details, 32)
 	if err != nil {
-		log.Printf("Error occured while setting finger table index %v to Id %v+2^(%v)=%v. err: %v\n", index, nI.Details.ID, index, idToFix, err.Error())
+		log.Printf("Error occurred while setting finger table index %v to Id %v+2^(%v)=%v. Error: %v\n", index, nI.Details.ID, index, idToFix, err.Error())
 		return
 	}
 
+	// Check if the index is within bounds before updating the finger table.
 	if index >= nodeInstance.FingerTableSize || index > len(nodeInstance.FingerTable) {
-		log.Printf("Index beyond size, element at position" + fmt.Sprintf("%v", index-1) + "missing")
-
+		log.Printf("Index beyond size, element at position %v missing", index-1)
+		return
 	}
+
+	// Update the finger table at the calculated index.
 	if index < len(nodeInstance.FingerTable) {
 		nodeInstance.FingerTable[index] = *node
 		return
 	}
+
+	// If the index is beyond the current finger table size, append the node to the finger table.
 	nodeInstance.FingerTable = append(nodeInstance.FingerTable, *node)
 }
+
 
 func CheckPredecessor() {
 	node := Get()
